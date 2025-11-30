@@ -1188,6 +1188,14 @@ namespace RadzenBlazorDemos
                         },
                         new Example
                         {
+                            Name = "File manager",
+                            Title = "Blazor File Manager Component - Data-binding to Files and Directories | Free UI Components by Radzen",
+                            Description = "This example demonstrates how to populate Blazor File Manager from the file system.",
+                            Path = "file-manager",
+                            Tags = new [] { "tree", "treeview", "nodes", "file", "directory" },
+                        },
+                        new Example
+                        {
                             Name = "Selection",
                             Title = "Blazor Tree Component - Selection | Free UI Components by Radzen",
                             Description = "This example demonstrates how to get or set the selected items of RadzenTree.",

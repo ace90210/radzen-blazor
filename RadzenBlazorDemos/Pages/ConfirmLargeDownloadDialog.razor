@@ -1,0 +1,20 @@
+﻿@inject DialogService DialogService
+
+<RadzenStack Gap="1.5rem">
+    <RadzenText TextStyle="TextStyle.Body1">
+        Total size: <b>@ReadableSize</b>.<br />
+        This exceeds the immediate limit of @ReadableLimit.<br /><br />
+        Do you want to run this in the background?
+    </RadzenText>
+
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End">
+        <RadzenButton Text="No, cancel" ButtonStyle="ButtonStyle.Light" Click="() => DialogService.Close(false)" />
+
+        <RadzenButton Text="Yes, run in background" ButtonStyle="ButtonStyle.Primary" Click="() => DialogService.Close(true)" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Parameter] public string ReadableSize { get; set; }
+    [Parameter] public string ReadableLimit { get; set; }
+}

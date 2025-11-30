@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Radzen.Blazor;
 
 namespace Radzen;
 
@@ -18,6 +19,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<NotificationService>();
         services.AddScoped<TooltipService>();
         services.AddScoped<ContextMenuService>();
+        services.AddScoped<FileManagerService>();
         services.AddScoped<ThemeService>();
         services.AddAIChatService();
 

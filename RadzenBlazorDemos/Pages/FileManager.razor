@@ -1,0 +1,141 @@
+@using System.IO
+@using RadzenBlazorDemos.Services
+@inject ContextMenuService ContextMenuService
+@inject DialogService DialogService
+@inject FileManagerService FileManagerService
+@inject NotificationService NotificationService
+@inject ZipBackgroundService ZipService
+@inject IJSRuntime JS
+@implements IDisposable
+
+
+@if (activeJobs.Any())
+{
+    <RadzenCard Style="position: fixed; bottom: 20px; right: 20px; width: 350px; z-index: 1000; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+        <RadzenText TextStyle="TextStyle.Subtitle1"><b>Background Tasks</b></RadzenText>
+
+        @foreach (var job in activeJobs)
+        {
+            <div class="rz-mt-2" style="border-bottom: 1px solid #eee; padding-bottom: 5px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:bold; font-size: 0.9em">@job.OutputFileName</span>
+
+                    @if (job.Status == ZipJobStatus.Processing || job.Status == ZipJobStatus.Queued)
+                    {
+                        <RadzenButton Icon="close" Size="ButtonSize.ExtraSmall" ButtonStyle="ButtonStyle.Danger"
+                                      Click="@(() => CancelBackgroundJob(job))"
+                                      ToolTip="Cancel" Style="width: 20px; height: 20px; padding: 0;" />
+                    }
+                </div>
+
+                <div style="display:flex; justify-content:space-between; font-size: 0.8em; color: #666;">
+                    <span>@job.Status</span>
+                    <span>@job.ProgressPercent%</span>
+                </div>
+
+                @if (job.Status == ZipJobStatus.Processing || job.Status == ZipJobStatus.Queued)
+                {
+                    <RadzenProgressBar Value="@job.ProgressPercent" Max="100" Style="height: 6px; margin-top: 2px" />
+                }
+                else if (job.Status == ZipJobStatus.Completed)
+                {
+                    <RadzenButton Size="ButtonSize.ExtraSmall" Text="Download" Icon="download"
+                                  Click="@(() => DownloadFinishedJob(job))" Class="rz-mt-2" ButtonStyle="ButtonStyle.Success" />
+                    <RadzenButton Size="ButtonSize.ExtraSmall" Icon="close"
+                                  Click="@(() => RemoveJobFromList(job))" Class="rz-mt-2 rz-ml-1" ButtonStyle="ButtonStyle.Light" />
+                }
+                else if (job.Status == ZipJobStatus.Cancelled || job.Status == ZipJobStatus.Failed)
+                {
+                    <div style="color: @(job.Status == ZipJobStatus.Failed ? "red" : "orange"); font-size: 0.8em">
+                        @(job.Status == ZipJobStatus.Failed ? job.ErrorMessage : "Cancelled by user")
+                    </div>
+                    <RadzenButton Size="ButtonSize.ExtraSmall" Text="Dismiss"
+                                  Click="@(() => RemoveJobFromList(job))" Class="rz-mt-1" ButtonStyle="ButtonStyle.Light" />
+                }
+            </div>
+        }
+    </RadzenCard>
+}
+
+<RadzenCard Style="height: 100%; min-height: 500px; display: flex; flex-direction: column; padding-bottom: 0;">
+    @if (IsLoading)
+    {
+        <div style="position: absolute; top:0; left:0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 10; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+            <RadzenProgressBarValue Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+            <RadzenText TextStyle="TextStyle.Subtitle2" Class="rz-mt-2">Preparing download...</RadzenText>
+        </div>
+    }
+
+    <RadzenMenu Click="@OnMenuItemClick" Class="rz-mb-4">
+        <RadzenMenuItem Text="Download" Icon="get_app" Value="1"
+                        Disabled="@(CheckedValues == null || !CheckedValues.Any())" />
+        <RadzenMenuItem Text="Properties" Icon="info" Value="2"
+                        Disabled="@(CheckedValues == null || !CheckedValues.Any())" />
+        <RadzenMenuItem Text="Refresh" Icon="refresh" Value="3" />
+    </RadzenMenu>
+
+    @if (string.IsNullOrEmpty(RootPath) || !Directory.Exists(RootPath))
+    {
+        <RadzenAlert Severity="AlertSeverity.Error" Variant="Variant.Flat">Invalid Root Path</RadzenAlert>
+    }
+    else
+    {
+        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3" Class="rz-mb-2">
+            Browsing: @RootPath
+        </RadzenText>
+
+        <RadzenTree Data=@entries
+                    Expand=@LoadFiles
+                    AllowCheckBoxes="true"
+                    Style="width: 100%; height: 100%"
+                    @bind-CheckedValues=@CheckedValues>
+            <RadzenTreeLevel Text=@GetTextForNode
+                             Template=@FileOrFolderTemplate
+                             HasChildren=@((item) => Directory.Exists((string)item)) />
+        </RadzenTree>
+
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="border-top: 1px solid #e0e0e0; padding-top: 10px; margin-top: 10px; padding-bottom: 10px;">
+            <RadzenIcon Icon="data_usage" />
+            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                @SelectionSummary
+            </RadzenText>
+        </RadzenStack>
+    }
+</RadzenCard>
+
+@code {
+
+
+    // 3. The Actual Dialog UI
+    void ShowPropertiesDialog(string title, string name, string location, string size, string created, string modified)
+    {
+        DialogService.Open(title, ds =>
+            @<RadzenStack Gap="1rem">
+    <RadzenRow>
+        <RadzenColumn Size="4" Class="rz-text-secondary">Name:</RadzenColumn>
+        <RadzenColumn Size="8"><b>@name</b></RadzenColumn>
+    </RadzenRow>
+    <RadzenRow>
+        <RadzenColumn Size="4" Class="rz-text-secondary">Location:</RadzenColumn>
+        <RadzenColumn Size="8" Style="word-break: break-all;">@location</RadzenColumn>
+    </RadzenRow>
+    <RadzenRow>
+        <RadzenColumn Size="4" Class="rz-text-secondary">Size:</RadzenColumn>
+        <RadzenColumn Size="8">@size</RadzenColumn>
+    </RadzenRow>
+    <RadzenRow>
+        <RadzenColumn Size="4" Class="rz-text-secondary">Created:</RadzenColumn>
+        <RadzenColumn Size="8">@created</RadzenColumn>
+    </RadzenRow>
+    <RadzenRow>
+        <RadzenColumn Size="4" Class="rz-text-secondary">Modified:</RadzenColumn>
+        <RadzenColumn Size="8">@modified</RadzenColumn>
+    </RadzenRow>
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Class="rz-mt-4">
+        <RadzenButton Text="Close" Click="() => ds.Close(true)" ButtonStyle="ButtonStyle.Light" />
+    </RadzenStack>
+</RadzenStack>
+        );
+    }
+
+}

@@ -1,9 +1,8 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
-using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Http.Features;
 using Radzen;
+using Radzen.Blazor;
 using RadzenBlazorDemos;
 using RadzenBlazorDemos.Data;
 using RadzenBlazorDemos.Services;
@@ -14,9 +13,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents().AddHubOptions(o =>
-{
-    o.MaximumReceiveMessageSize = 10 * 1024 * 1024;
-});
+    {
+        o.MaximumReceiveMessageSize = 10 * 1024 * 1024;
+    });
 builder.Services.AddSingleton(sp =>
 {
     // Get the address that the app is currently running at
@@ -39,6 +38,8 @@ builder.Services.AddDbContextFactory<NorthwindContext>();
 builder.Services.AddScoped<NorthwindService>();
 builder.Services.AddScoped<NorthwindODataService>();
 builder.Services.AddSingleton<GitHubService>();
+builder.Services.AddSingleton<ZipBackgroundService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<ZipBackgroundService>());
 
 builder.Services.AddAIChatService(options =>
     builder.Configuration.GetSection("AIChatService").Bind(options));
@@ -86,5 +87,55 @@ app.MapRazorPages();
 app.MapRazorComponents<RadzenBlazorDemos.Server.App>()
     .AddInteractiveServerRenderMode().AddAdditionalAssemblies(typeof(RadzenBlazorDemos.Routes).Assembly);
 app.MapControllers();
+
+app.MapGet("/api/download/{token}", async (string token, FileManagerService fileService, HttpContext context) =>
+{
+    if (fileService.TryGetToken(token, out var entry))
+    {
+        // 1. Determine the Filename
+        // Use the override if provided (e.g., "Archive.zip"), otherwise get from disk (e.g., "image.jpg")
+        var finalFileName = !string.IsNullOrEmpty(entry.DownloadName)
+            ? entry.DownloadName
+            : Path.GetFileName(entry.Path);
+
+        // 2. Set Content-Disposition (Forces browser to download with specific name)
+        context.Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{finalFileName}\"");
+
+        if (entry.IsZip)
+        {
+            // ... (Your existing Zip Logic - kept short for brevity) ...
+            var syncIOFeature = context.Features.Get<IHttpBodyControlFeature>();
+            if (syncIOFeature != null) syncIOFeature.AllowSynchronousIO = true;
+
+            context.Response.ContentType = "application/zip";
+            await fileService.DownloadZipToStreamAsync(entry.SourcePaths, context.Response.Body);
+        }
+        else
+        {
+            // 3. SINGLE FILE DOWNLOAD LOGIC
+
+            // This tells ASP.NET: "When the response is finished sending to the user, run this code."
+            if (entry.DeleteAfter)
+            {
+                context.Response.OnCompleted(() =>
+                {
+                    try
+                    {
+                        if (File.Exists(entry.Path)) File.Delete(entry.Path);
+                    }
+                    catch { /* Log error safely */ }
+                    return Task.CompletedTask;
+                });
+            }
+
+            // Stream the file
+            var fileInfo = new System.IO.FileInfo(entry.Path);
+            return Results.File(entry.Path, "application/octet-stream", finalFileName);
+        }
+
+        return Results.Empty;
+    }
+    return Results.NotFound("Download link expired or invalid.");
+});
 
 app.Run();
