@@ -135,13 +135,11 @@ namespace RadzenBlazorDemos.Pages
             builder.AddEventStopPropagationAttribute(3, "onclick", true);
 
             // RIGHT CLICK (Context Menu)
-            builder.AddAttribute(2, "oncontextmenu", EventCallback.Factory.Create<MouseEventArgs>(this,
+            builder.AddAttribute(3, "oncontextmenu", EventCallback.Factory.Create<MouseEventArgs>(this,
                 (args) => OnShowContextMenu(args, path, isDirectory)));
-            builder.AddEventPreventDefaultAttribute(3, "oncontextmenu", true);
+            builder.AddEventPreventDefaultAttribute(4, "oncontextmenu", true);
 
-            
-            
-            builder.AddEventStopPropagationAttribute(4, "oncontextmenu", true);
+            builder.AddEventStopPropagationAttribute(5, "oncontextmenu", true);
 
             // Icon
             builder.OpenComponent<RadzenIcon>(6);
