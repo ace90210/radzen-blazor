@@ -2675,6 +2675,7 @@ Radzen.unregisterFabMenu = function(element){
   }
 };
 
+// to be removed
 Radzen.downloadFileFromStream = async (fileName, contentStreamReference) => {
     const arrayBuffer = await contentStreamReference.arrayBuffer();
     const blob = new Blob([arrayBuffer]);

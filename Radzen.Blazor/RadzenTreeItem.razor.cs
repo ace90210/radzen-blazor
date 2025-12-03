@@ -378,7 +378,11 @@ namespace Radzen.Blazor
             }
         }
 
-        internal bool? IsChecked()
+        /// <summary>
+        /// Returns if the current tree item is checked, unchecked or indeterminate.
+        /// </summary>
+        /// <returns></returns>
+        public bool? IsChecked()
         {
             var checkedValues = GetCheckedValues();
 
@@ -488,7 +492,14 @@ namespace Radzen.Blazor
             });
         }
 
-        internal async Task OnTemplateClick(MouseEventArgs args)
+        /// <summary>
+        /// Toggles the checked state of the tree node in response to a mouse event, if checkboxes are enabled and the
+        /// node is checkable.
+        /// </summary>
+        /// <remarks>This method has no effect if the tree does not support checkboxes or if the node is
+        /// not checkable.</remarks>
+        /// <returns>A task that represents the asynchronous toggle operation.</returns>
+        public async Task ToggleSelection()
         {
             if (Tree != null && Tree.AllowCheckBoxes && Checkable)
             {

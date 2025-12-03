@@ -124,11 +124,22 @@ namespace RadzenBlazorDemos.Pages
             // Main Container
             builder.OpenElement(0, "div");
             builder.AddAttribute(1, "style", "display: inline-flex; align-items: center; width: 100%; cursor: pointer;"); // Added cursor pointer
+                                                                                                                          // This calls the new method you exposed in your PR
+            builder.AddAttribute(2, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this, async () =>
+            {
+                await item.ToggleSelection();
+            }));
+
+            // We usually want to stop propagation so clicking the text doesn't 
+            // trigger other tree events unnecessarily, though this is optional depending on your needs.
+            builder.AddEventStopPropagationAttribute(3, "onclick", true);
 
             // RIGHT CLICK (Context Menu)
             builder.AddAttribute(2, "oncontextmenu", EventCallback.Factory.Create<MouseEventArgs>(this,
                 (args) => OnShowContextMenu(args, path, isDirectory)));
             builder.AddEventPreventDefaultAttribute(3, "oncontextmenu", true);
+
+            
             
             builder.AddEventStopPropagationAttribute(4, "oncontextmenu", true);
 
@@ -260,7 +271,7 @@ namespace RadzenBlazorDemos.Pages
             var token = FileManagerService.GenerateToken(path, downloadName, deleteAfter);
 
             var url = $"/api/download/{token}";
-            await JS.InvokeVoidAsync("triggerFileDownload", url);
+            await JS.InvokeVoidAsync("Radzen.triggerFileDownload", url);
         }
 
         // Fixed StartBackgroundZip using NotificationService
@@ -297,7 +308,7 @@ namespace RadzenBlazorDemos.Pages
 
             // 2. Trigger download. The server will stream the zip creation directly to the response.
             var url = $"/api/download/{token}";
-            await JS.InvokeVoidAsync("triggerFileDownload", url);
+            await JS.InvokeVoidAsync("Radzen.triggerFileDownload", url);
         }
 
         // Update Context Menu callback to use the new method
