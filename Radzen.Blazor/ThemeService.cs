@@ -468,7 +468,7 @@ namespace Radzen
 
         internal string WcagHref => $"{Path}/{Theme}-wcag.css?v={Version}";
 
-        private string Path => Embedded ? $"_content/Radzen.Blazor/css" : "css";
+        private string Path => Embedded ? $"_content/BLECoder.Radzen.Blazor/css" : "css";
 
         internal bool Embedded => Theme switch
         {

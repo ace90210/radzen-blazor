@@ -41,7 +41,7 @@ namespace Radzen.Blazor
 
         private string WcagHref => ThemeService.WcagHref;
 
-        private string IconFontPath => ThemeService.Embedded ? $"_content/Radzen.Blazor/fonts" : "fonts";
+        private string IconFontPath => ThemeService.Embedded ? $"_content/BLECoder.Radzen.Blazor/fonts" : "fonts";
 
         private string IconFontHref => $"{IconFontPath}/MaterialSymbolsOutlined.woff2";
 
